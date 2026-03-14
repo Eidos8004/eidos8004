@@ -58,7 +58,7 @@ export default function Navbar() {
             style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             <Wallet size={14} />
-            {formattedAddress}
+            {wallet.ensName || formattedAddress}
           </button>
         ) : (
           <button

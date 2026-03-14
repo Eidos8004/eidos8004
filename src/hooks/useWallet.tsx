@@ -38,12 +38,21 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       const balance = await provider.getBalance(address);
       const { ethers } = await import('ethers');
 
+      // Fetch ENS Domain from Ethereum Mainnet (since records live on L1)
+      let ensName = null;
+      try {
+        const mainnetProvider = new ethers.JsonRpcProvider('https://eth.llamarpc.com');
+        ensName = await mainnetProvider.lookupAddress(address);
+      } catch (ensError) {
+        console.warn('Failed to resolve ENS name:', ensError);
+      }
+
       setWallet({
         connected: true,
         address,
         chainId: Number(network.chainId),
         balance: ethers.formatEther(balance),
-        ensName: null,
+        ensName,
       });
     } catch (err: any) {
       setError(err.message || 'Failed to connect wallet');
