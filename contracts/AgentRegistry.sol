@@ -26,6 +26,7 @@ contract AgentRegistry is ERC721, ERC721URIStorage, Ownable {
         address wallet;
         AgentType agentType;
         string name;
+        string ensName; // e.g. "alpha.eidos8004.eth"
         string description;
         string capabilitiesURI; // IPFS URI to agent card JSON
         uint256 registeredAt;
@@ -55,6 +56,7 @@ contract AgentRegistry is ERC721, ERC721URIStorage, Ownable {
 
     mapping(uint256 => Agent) public agents;
     mapping(address => uint256) public walletToAgentId;
+    mapping(string => address) public ensToWallet; // Ensure ENS sub-name uniqueness
     mapping(uint256 => Feedback[]) public agentFeedbacks;
     mapping(uint256 => uint256) public agentReputationSum;
     mapping(uint256 => uint256) public agentFeedbackCount;
@@ -113,11 +115,13 @@ contract AgentRegistry is ERC721, ERC721URIStorage, Ownable {
     function registerAgent(
         AgentType _agentType,
         string memory _name,
+        string memory _ensName,
         string memory _description,
         string memory _capabilitiesURI,
         string memory _tokenURI
     ) external returns (uint256) {
         require(walletToAgentId[msg.sender] == 0, "Agent already registered");
+        require(ensToWallet[_ensName] == address(0), "ENS name already taken");
 
         _nextAgentId++;
         uint256 newAgentId = _nextAgentId;
@@ -129,6 +133,7 @@ contract AgentRegistry is ERC721, ERC721URIStorage, Ownable {
             wallet: msg.sender,
             agentType: _agentType,
             name: _name,
+            ensName: _ensName,
             description: _description,
             capabilitiesURI: _capabilitiesURI,
             registeredAt: block.timestamp,
@@ -136,6 +141,7 @@ contract AgentRegistry is ERC721, ERC721URIStorage, Ownable {
         });
 
         walletToAgentId[msg.sender] = newAgentId;
+        ensToWallet[_ensName] = msg.sender;
         totalAgents++;
 
         emit AgentRegistered(newAgentId, msg.sender, _agentType, _name, block.timestamp);

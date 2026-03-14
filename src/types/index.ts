@@ -97,6 +97,7 @@ export interface NegotiationMessage {
   id: string;
   sender: 'client' | 'artist';
   agentName: string;
+  ensName?: string;
   content: string;
   timestamp: number;
   artifactIds?: number[];

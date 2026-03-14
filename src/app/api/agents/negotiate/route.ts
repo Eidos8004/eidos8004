@@ -57,13 +57,15 @@ export async function POST(req: NextRequest) {
         selectedDesigns: aiResponse.selectedDesigns,
         totalCost: totalAmount,
         transcript: aiResponse.transcript,
+        clientAgent: aiResponse.clientAgent, // Pass the seeker.eidos8004.eth metadata
         x402Payment: {
           status: bitgoTx.status || 'ready',
           amount: bitgoTx.amountInWei,
           currency: 'tETH',
           recipient: bitgoTx.toAddress,
           proofHash: bitgoTx.txid, // BitGo transaction ID
-          sourceWallet: agentWallet.id
+          sourceWallet: agentWallet.id,
+          sourceEnsName: aiResponse.clientAgent?.ensName // Use the generated seeker name
         },
       },
     };

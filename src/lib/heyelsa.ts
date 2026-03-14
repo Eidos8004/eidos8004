@@ -18,8 +18,9 @@ Your task:
 1. Review the prompt and find the BEST matching design from the registry based on its title, category, and tags.
 2. The design has an 'artifactCount' and 'thresholdPrice'. Invent 1 to 3 relevant design artifacts (like "Color Palette", "Typography", "3D Assets", "UI Components") that belong to the chosen design.
 3. Assign a realistic ETH price (e.g., "0.02") to each artifact so that the total is less than or equal to the thresholdPrice.
-4. Construct a 3-round chat transcript where DesignSeeker requests the design, Aurora.AI proposes the artifacts, and DesignSeeker accepts them.
-5. Return the exact JSON structure below with NO markdown formatting:
+4. Generate unique, catchy sub-ENS names for both agents (DesignSeeker and Aurora.AI). Format: "[name].eidos8004.eth".
+5. Construct a 3-round chat transcript where DesignSeeker requests the design, Aurora.AI proposes the artifacts, and DesignSeeker accepts them.
+6. Return the exact JSON structure below with NO markdown formatting:
 
 {
   "selectedDesigns": [
@@ -27,16 +28,21 @@ Your task:
       "designId": <number>,
       "title": "<string>",
       "artist": "<string>",
+      "ensName": "<string>", // e.g. "aurora.eidos8004.eth"
       "selectedArtifacts": [
         { "id": <number>, "name": "<string>", "price": "<string>" }
       ]
     }
   ],
   "totalCost": "<string>",
+  "clientAgent": {
+    "name": "DesignSeeker",
+    "ensName": "<string>" // e.g. "seeker.eidos8004.eth"
+  },
   "transcript": [
-    { "agent": "DesignSeeker", "type": "client", "message": "<string>" },
-    { "agent": "Aurora.AI", "type": "artist", "message": "<string>" },
-    { "agent": "DesignSeeker", "type": "client", "message": "<string>" }
+    { "agent": "DesignSeeker", "type": "client", "message": "<string>", "ensName": "<string>" },
+    { "agent": "Aurora.AI", "type": "artist", "message": "<string>", "ensName": "<string>" },
+    { "agent": "DesignSeeker", "type": "client", "message": "<string>", "ensName": "<string>" }
   ]
 }`;
 

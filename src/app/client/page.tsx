@@ -53,7 +53,7 @@ export default function ClientPage() {
   const [prompt, setPrompt] = useState('');
   const [isNegotiating, setIsNegotiating] = useState(false);
   const [messages, setMessages] = useState<NegotiationMessage[]>([]);
-  const [messageIndex, setMessageIndex] = useState(0);
+  const [resultData, setResultData] = useState<any>(null);
   const [showResult, setShowResult] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
@@ -64,30 +64,41 @@ export default function ClientPage() {
     }
   }, [messages]);
 
-  // Simulate negotiation
-  const startNegotiation = () => {
+  // Real negotiation api call
+  const startNegotiation = async () => {
     if (!prompt.trim()) return;
     setIsNegotiating(true);
     setMessages([]);
-    setMessageIndex(0);
     setShowResult(false);
-  };
+    setResultData(null);
 
-  useEffect(() => {
-    if (!isNegotiating) return;
-    if (messageIndex >= DEMO_NEGOTIATION.length) {
-      setTimeout(() => setShowResult(true), 1000);
+    try {
+      const response = await fetch('/api/agents/negotiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, budget: '0.2', designIds: [1, 2] }),
+      });
+
+      const res = await response.json();
+      if (res.success) {
+        // Slow-play the messages for the "Arena" experience
+        const transcript = res.data.transcript;
+        for (let i = 0; i < transcript.length; i++) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          setMessages(prev => [...prev, { ...transcript[i], id: `msg_${i}_${Date.now()}` }]);
+        }
+        setResultData(res.data);
+        setTimeout(() => setShowResult(true), 1000);
+      } else {
+        alert("Negotiation failed: " + res.error);
+      }
+    } catch (err) {
+      console.error("Negotiation error:", err);
+      alert("Failed to reach agents.");
+    } finally {
       setIsNegotiating(false);
-      return;
     }
-
-    const timer = setTimeout(() => {
-      setMessages(prev => [...prev, DEMO_NEGOTIATION[messageIndex]]);
-      setMessageIndex(prev => prev + 1);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [isNegotiating, messageIndex]);
+  };
 
   if (!wallet.connected) {
     return (
@@ -191,17 +202,9 @@ export default function ClientPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
               <div className="agent-avatar client">C</div>
-              <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>DesignSeeker (Your Agent)</span>
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                <div className="agent-avatar artist" style={{ fontSize: 'var(--text-xs)' }}>A1</div>
-                <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Aurora.AI</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                <div className="agent-avatar artist" style={{ fontSize: 'var(--text-xs)', background: 'var(--gradient-accent)' }}>A2</div>
-                <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>NeoDesign.AI</span>
-              </div>
+              <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
+                {resultData?.clientAgent?.ensName || 'DesignSeeker'} (Your Agent)
+              </span>
             </div>
           </div>
 
@@ -221,7 +224,7 @@ export default function ClientPage() {
                   </div>
                   <div>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: '4px', fontWeight: 600 }}>
-                      {msg.agentName}
+                      {msg.ensName || msg.agentName}
                     </div>
                     <div className={`agent-bubble ${msg.sender}`}>
                       {msg.content}
@@ -272,35 +275,33 @@ export default function ClientPage() {
             <div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 'var(--space-2)' }}>Selected Artifacts</div>
               <div className="artifact-list">
-                <div className="artifact-item">
-                  <span className="artifact-name">Color Palette <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>from Minimal UI Kit</span></span>
-                  <span className="artifact-price">0.03 ETH</span>
-                </div>
-                <div className="artifact-item">
-                  <span className="artifact-name">Typography System <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>from Minimal UI Kit</span></span>
-                  <span className="artifact-price">0.03 ETH</span>
-                </div>
-                <div className="artifact-item">
-                  <span className="artifact-name">Chart Styles <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>from Cyberpunk Dashboard</span></span>
-                  <span className="artifact-price">0.04 ETH</span>
-                </div>
+                {resultData?.selectedDesigns?.[0]?.selectedArtifacts.map((art: any, idx: number) => (
+                  <div className="artifact-item" key={idx}>
+                    <span className="artifact-name">{art.name} <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>from {resultData.selectedDesigns[0].title}</span></span>
+                    <span className="artifact-price">{art.price} ETH</span>
+                  </div>
+                ))}
               </div>
             </div>
             <div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: 'var(--space-2)' }}>Payment Summary</div>
               <div className="glass-card" style={{ padding: 'var(--space-4)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                  <span style={{ color: 'var(--color-text-secondary)' }}>Subtotal (3 artifacts)</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>0.10 ETH</span>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Status</span>
+                  <span style={{ fontWeight: 600, color: 'var(--color-success)' }}>{resultData?.x402Payment?.status}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                  <span style={{ color: 'var(--color-text-secondary)' }}>Protocol fee</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--color-success)' }}>0.00 ETH</span>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Recipient</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>{resultData?.x402Payment?.recipient?.substring(0, 10)}...</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Proof (ENS)</span>
+                  <span style={{ fontWeight: 600, color: 'var(--color-secondary)' }}>{resultData?.x402Payment?.sourceEnsName}</span>
                 </div>
                 <hr style={{ border: 'none', borderTop: '1px solid var(--color-glass-border)', margin: 'var(--space-3) 0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontWeight: 700 }}>Total</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--color-secondary)', fontSize: 'var(--text-xl)' }}>0.10 ETH</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--color-secondary)', fontSize: 'var(--text-xl)' }}>{resultData?.totalCost} ETH</span>
                 </div>
               </div>
               <button className="btn btn-primary" style={{ width: '100%', marginTop: 'var(--space-4)' }} id="pay-attribution-btn">
