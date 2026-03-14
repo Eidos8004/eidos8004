@@ -24,6 +24,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { WalletProvider } from "@/hooks/useWallet";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -40,8 +42,10 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <Navbar />
-        <main style={{ paddingTop: "72px" }}>{children}</main>
+        <WalletProvider>
+          <Navbar />
+          <main style={{ paddingTop: "72px" }}>{children}</main>
+        </WalletProvider>
       </body>
     </html>
   );

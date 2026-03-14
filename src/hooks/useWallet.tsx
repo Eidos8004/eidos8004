@@ -1,11 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { connectWallet, getProvider, formatAddress } from '@/lib/contracts';
 import type { WalletState } from '@/types';
 import { BASE_SEPOLIA } from '@/lib/contracts/config';
 
-export function useWallet() {
+interface WalletContextType {
+  wallet: WalletState;
+  loading: boolean;
+  error: string | null;
+  connect: () => Promise<void>;
+  disconnect: () => void;
+  isCorrectChain: boolean;
+  formattedAddress: string | null;
+}
+
+const WalletContext = createContext<WalletContextType | undefined>(undefined);
+
+export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [wallet, setWallet] = useState<WalletState>({
     connected: false,
     address: null,
@@ -13,7 +25,7 @@ export function useWallet() {
     balance: null,
     ensName: null,
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start loading to prevent flash of connect button
   const [error, setError] = useState<string | null>(null);
 
   const connect = useCallback(async () => {
@@ -52,15 +64,34 @@ export function useWallet() {
 
   // Listen for account/chain changes
   useEffect(() => {
-    if (typeof window === 'undefined' || !(window as any).ethereum) return;
+    if (typeof window === 'undefined' || !(window as any).ethereum) {
+      setLoading(false);
+      return;
+    }
 
     const ethereum = (window as any).ethereum;
+
+    const checkConnection = async () => {
+      try {
+        const accounts = await ethereum.request({ method: 'eth_accounts' });
+        if (accounts && accounts.length > 0) {
+          await connect();
+        } else {
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Failed to check wallet connection:", err);
+        setLoading(false);
+      }
+    };
+
+    checkConnection();
 
     const handleAccountsChanged = (accounts: string[]) => {
       if (accounts.length === 0) {
         disconnect();
       } else {
-        setWallet(prev => ({ ...prev, address: accounts[0] }));
+        connect();
       }
     };
 
@@ -75,15 +106,27 @@ export function useWallet() {
       ethereum.removeListener('accountsChanged', handleAccountsChanged);
       ethereum.removeListener('chainChanged', handleChainChanged);
     };
-  }, [disconnect]);
+  }, [connect, disconnect]);
 
-  return {
-    wallet,
-    loading,
-    error,
-    connect,
-    disconnect,
-    isCorrectChain: wallet.chainId === BASE_SEPOLIA.chainId,
-    formattedAddress: wallet.address ? formatAddress(wallet.address) : null,
-  };
+  return (
+    <WalletContext.Provider value={{
+      wallet,
+      loading,
+      error,
+      connect,
+      disconnect,
+      isCorrectChain: wallet.chainId === BASE_SEPOLIA.chainId,
+      formattedAddress: wallet.address ? formatAddress(wallet.address) : null,
+    }}>
+      {children}
+    </WalletContext.Provider>
+  );
+}
+
+export function useWallet() {
+  const context = useContext(WalletContext);
+  if (context === undefined) {
+    throw new Error('useWallet must be used within a WalletProvider');
+  }
+  return context;
 }
