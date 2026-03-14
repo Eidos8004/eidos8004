@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAgentWallet, transferToArtist } from '@/lib/bitgo';
+import { negotiateWithAgent } from '@/lib/heyelsa';
+
+// Demo design catalog shared with discover route
+const availableDesigns = [
+  { id: 1, title: 'Minimal UI Kit', artist: '0x742d...1a3e', category: 'UI Design', tags: ['minimal', 'fintech', 'clean'], thresholdPrice: '0.15', artifactCount: 5 },
+  { id: 2, title: 'Cyberpunk Dashboard', artist: '0xab12...ff91', category: 'Dashboard', tags: ['cyberpunk', 'data-viz', 'neon'], thresholdPrice: '0.24', artifactCount: 6 },
+  { id: 3, title: 'Japanese Garden UI', artist: '0x5f67...c4d2', category: 'Mobile', tags: ['japanese', 'nature', 'zen'], thresholdPrice: '0.16', artifactCount: 4 },
+  { id: 4, title: 'Brutalist Portfolio', artist: '0x891f...b2c7', category: 'Portfolio', tags: ['brutalist', 'bold', 'typography'], thresholdPrice: '0.12', artifactCount: 3 },
+];
 
 /**
  * POST /api/agents/negotiate
- * Handles agent-to-agent negotiation for design inspiration.
- * In production, this would orchestrate OpenClaw/HeyElsa agents.
- * For the hackathon demo, returns simulated negotiation results and real BitGo transaction states (if credentials allow).
+ * Handles agent-to-agent negotiation for design inspiration using HeyElsa.ai / OpenClaw logic.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -19,17 +26,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Simulate agent negotiation delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // We will generate a mock BitGo agent wallet to simulate the client side.
+    // Call the AI Agent Orchestrator to dynamically negotiate using the prompt
+    console.log("Initiating HeyElsa AI Agent Negotiation...");
+    const aiResponse = await negotiateWithAgent(prompt, availableDesigns);
+    const totalAmount = aiResponse.totalCost || '0.05'; 
+    const artistAddress = aiResponse.selectedDesigns?.[0]?.artist?.startsWith('0x') 
+        ? aiResponse.selectedDesigns[0].artist 
+        : '0x742d35Cc6634C0532925a3b844Bc9e7595f1a3e';
+
+    // We generate a mock BitGo agent wallet to simulate the client side paying for the determined artifacts.
     const agentWallet = await createAgentWallet("ClientAgentWallet-Demo", "EidosTestnetPassphrase8004!");
-    const totalAmount = '0.06'; // Example amount from the demo
-    const artistAddress = '0x742d35Cc6634C0532925a3b844Bc9e7595f1a3e';
     
     // Execute a simulated transfer to the Artist
-    // Note: bitgo API actually deals in base satoshis or wei, so this amount logic
-    // might need to be parsed in a real scenario, but we stick to eth values for mock demo representation.
     const bitgoTx = await transferToArtist(
       agentWallet.id,
       artistAddress,
@@ -37,60 +45,34 @@ export async function POST(req: NextRequest) {
       "EidosTestnetPassphrase8004!"
     );
 
-    // Demo negotiation result
+    // Build the dynamic negotiation result
     const result = {
       success: true,
       data: {
         session: {
           id: `session_${Date.now()}`,
           status: 'agreed',
-          rounds: 3,
+          rounds: Math.max(3, aiResponse.transcript?.length || 3),
         },
-        selectedDesigns: [
-          {
-            designId: 1,
-            title: 'Minimal UI Kit',
-            artist: artistAddress,
-            selectedArtifacts: [
-              { id: 0, name: 'Color Palette', price: '0.03' },
-              { id: 1, name: 'Typography System', price: '0.03' },
-            ],
-          },
-        ],
+        selectedDesigns: aiResponse.selectedDesigns,
         totalCost: totalAmount,
-        transcript: [
-          {
-            agent: 'DesignSeeker',
-            type: 'client',
-            message: `Searching for designs matching: "${prompt}"`,
-          },
-          {
-            agent: 'Aurora.AI',
-            type: 'artist',
-            message: 'Proposing "Minimal UI Kit" - Color Palette and Typography System match the brief perfectly.',
-          },
-          {
-            agent: 'DesignSeeker',
-            type: 'client',
-            message: `Accepted. Initiating x402 payment from Agent Wallet ${agentWallet.id} for 2 artifacts at ${totalAmount} ETH total.`,
-          },
-        ],
+        transcript: aiResponse.transcript,
         x402Payment: {
           status: bitgoTx.status || 'ready',
           amount: bitgoTx.amountInWei,
           currency: 'tETH',
           recipient: bitgoTx.toAddress,
-          proofHash: bitgoTx.txid, // We use the bitgo transaction ID as the proof hash for simplicity
+          proofHash: bitgoTx.txid, // BitGo transaction ID
           sourceWallet: agentWallet.id
         },
       },
     };
 
     return NextResponse.json(result);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Negotiation API error:", error);
     return NextResponse.json(
-      { success: false, error: 'Negotiation failed' },
+      { success: false, error: error.message || 'Negotiation failed' },
       { status: 500 }
     );
   }
