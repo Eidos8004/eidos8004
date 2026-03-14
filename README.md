@@ -65,7 +65,18 @@ Four Solidity contracts, optimized for deployment via Remix IDE on Base Sepolia:
 4. Select "Injected Provider - MetaMask" as environment
 5. Ensure MetaMask is connected to Base Sepolia (Chain ID: 84532)
 6. Deploy in order: DesignRegistry -> AgentRegistry -> AttributionPayment -> ReputationForum
-7. Copy deployed addresses to `.env.local`
+7. Copy deployed addresses to `.env`
+
+### Base Sepolia Deployed Contracts
+
+You can use the already deployed official testnet contracts on Base Sepolia by adding the following to your `.env`:
+
+```text
+NEXT_PUBLIC_DESIGN_REGISTRY_ADDRESS=0xd61C1eF1157E4a6C83869D0Cbf85B6B137c05e0F
+NEXT_PUBLIC_AGENT_REGISTRY_ADDRESS=0xe76eFB8677dd418E7f38b326583A0A16C3B009dc
+NEXT_PUBLIC_ATTRIBUTION_PAYMENT_ADDRESS=0xd64bffe4bF43b10E293B3f8AAc42Cb718742cac2
+NEXT_PUBLIC_REPUTATION_FORUM_ADDRESS=0xf9F0C526716C656C3381459dd7f4F667dD04cBD8
+```
 
 ### Base Sepolia Network Config
 
@@ -109,7 +120,7 @@ git clone https://github.com/Eidos8004/eidos8004.git
 npm install
 
 # Copy environment variables
-cp .env.example .env.local
+cp .env.example .env
 # Fill in your contract addresses and API keys
 
 # Run development server
