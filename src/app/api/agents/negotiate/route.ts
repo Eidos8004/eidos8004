@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ethers } from 'ethers';
 import { createAgentWallet, transferToArtist } from '@/lib/bitgo';
 import { negotiateWithAgent } from '@/lib/heyelsa';
 
@@ -29,7 +30,9 @@ export async function POST(req: NextRequest) {
     // Call the AI Agent Orchestrator to dynamically negotiate using the prompt
     console.log("Initiating HeyElsa AI Agent Negotiation...");
     const aiResponse = await negotiateWithAgent(prompt, availableDesigns);
-    const totalAmount = aiResponse.totalCost || '0.05'; 
+    const totalAmountEth = aiResponse.totalCost || '0.05'; 
+    const totalAmountWei = ethers.parseEther(totalAmountEth).toString();
+    
     const artistAddress = aiResponse.selectedDesigns?.[0]?.artist?.startsWith('0x') 
         ? aiResponse.selectedDesigns[0].artist 
         : '0x742d35Cc6634C0532925a3b844Bc9e7595f1a3e';
@@ -41,7 +44,7 @@ export async function POST(req: NextRequest) {
     const bitgoTx = await transferToArtist(
       agentWallet.id,
       artistAddress,
-      totalAmount,
+      totalAmountWei,
       "EidosTestnetPassphrase8004!"
     );
 
@@ -55,7 +58,7 @@ export async function POST(req: NextRequest) {
           rounds: Math.max(3, aiResponse.transcript?.length || 3),
         },
         selectedDesigns: aiResponse.selectedDesigns,
-        totalCost: totalAmount,
+        totalCost: totalAmountEth,
         transcript: aiResponse.transcript,
         clientAgent: aiResponse.clientAgent, // Pass the seeker.eidos8004.eth metadata
         x402Payment: {
