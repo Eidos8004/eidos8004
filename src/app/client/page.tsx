@@ -56,7 +56,9 @@ export default function ClientPage() {
   const [resultData, setResultData] = useState<any>(null);
   const [showResult, setShowResult] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
+  const [isFunding, setIsFunding] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [funded, setFunded] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll chat
@@ -99,6 +101,31 @@ export default function ClientPage() {
       alert("Failed to reach agents.");
     } finally {
       setIsNegotiating(false);
+    }
+  };
+
+  const handlePrefund = async () => {
+    if (!resultData || !wallet.address) return;
+    
+    setIsFunding(true);
+    try {
+      const { getSigner } = await import('@/lib/contracts');
+      const signer = await getSigner();
+      
+      console.log("Funding agent wallet:", resultData.x402Payment.sourceAddress);
+      
+      const tx = await signer.sendTransaction({
+        to: resultData.x402Payment.sourceAddress,
+        value: resultData.x402Payment.amount
+      });
+      
+      await tx.wait();
+      setFunded(true);
+    } catch (err: any) {
+      console.error("Funding failed:", err);
+      alert("Failed to fund agent wallet. Please check your balance.");
+    } finally {
+      setIsFunding(false);
     }
   };
 
@@ -339,30 +366,52 @@ export default function ClientPage() {
                   <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--color-secondary)', fontSize: 'var(--text-xl)' }}>{resultData?.totalCost} ETH</span>
                 </div>
               </div>
-              <button 
-                className="btn btn-primary" 
-                style={{ width: '100%', marginTop: 'var(--space-4)' }} 
-                id="pay-attribution-btn"
-                onClick={handlePayment}
-                disabled={isPaying || paymentSuccess}
-              >
-                {isPaying ? (
-                  <>
-                    <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                    Recording Attribution...
-                  </>
-                ) : paymentSuccess ? (
-                  <>
-                    <CheckCircle2 size={16} />
-                    Paid & Recorded
-                  </>
-                ) : (
-                  <>
-                    <Zap size={16} />
-                    Pay via x402 & Record Attribution
-                  </>
-                )}
-              </button>
+              
+              {!funded && !paymentSuccess ? (
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ width: '100%', marginTop: 'var(--space-4)', background: 'var(--color-primary)' }} 
+                  onClick={handlePrefund}
+                  disabled={isFunding}
+                >
+                  {isFunding ? (
+                    <>
+                      <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                      Funding Agent...
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={16} />
+                      1. Top-up Agent ({resultData?.totalCost} ETH)
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button 
+                  className="btn btn-primary" 
+                  style={{ width: '100%', marginTop: 'var(--space-4)' }} 
+                  id="pay-attribution-btn"
+                  onClick={handlePayment}
+                  disabled={isPaying || paymentSuccess}
+                >
+                  {isPaying ? (
+                    <>
+                      <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                      2. Recording Attribution...
+                    </>
+                  ) : paymentSuccess ? (
+                    <>
+                      <CheckCircle2 size={16} />
+                      Paid & Recorded
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={16} />
+                      2. Finalize x402 Attribution
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 

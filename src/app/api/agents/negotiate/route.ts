@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
           recipient: bitgoTx.toAddress,
           proofHash: bitgoTx.txid, // BitGo transaction ID
           sourceWallet: agentWallet.id,
+          sourceAddress: agentWallet.receiveAddress, // Real 0x address for prefunding
           sourceEnsName: aiResponse.clientAgent?.ensName // Use the generated seeker name
         },
       },

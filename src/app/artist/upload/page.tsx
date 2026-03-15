@@ -7,6 +7,7 @@ import {
   Upload, Plus, Trash2, ArrowRight, Image as ImageIcon,
   DollarSign, Tag, FileText, Loader, CheckCircle2
 } from 'lucide-react';
+import { mintDesign, addArtifact as addOnChainArtifact, parseEth } from '@/lib/contracts';
 
 interface ArtifactInput {
   name: string;
@@ -69,23 +70,42 @@ export default function UploadDesignPage() {
     if (!title || !description || artifacts.some(a => !a.name || !a.price)) return;
     
     setUploading(true);
-    // Real-world: This would upload to IPFS/Pinata and then call the DesignRegistry contract.
-    // For this demo, we simulate the decentralized storage and on-chain minting workflow.
     console.log("Starting Minting Process for:", title);
     
     try {
-      // Phase 1: Uploading assets to IPFS
+      // Phase 1: Simulated IPFS Upload (keeping this for now as no real IPFS gateway write access is usually available in demo)
       await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log("Assets pinned to IPFS.");
+      const mockIpfsCid = `Qm${Math.random().toString(36).substring(2, 12)}...`;
       
-      // Phase 2: Registering metadata
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log("Metadata registered via ERC-8004.");
+      // Phase 2: Real On-Chain Minting (Triggers MetaMask)
+      const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t);
+      const tokenId = await mintDesign(
+        title,
+        description,
+        category || 'Other',
+        mockIpfsCid,
+        tagsArray,
+        `ipfs://${mockIpfsCid}/metadata.json`
+      );
+
+      console.log("Design Minted on-chain. Token ID:", tokenId);
+
+      // Phase 3: Adding Artifacts on-chain
+      for (const artifact of artifacts) {
+        if (artifact.name && artifact.price) {
+          await addOnChainArtifact(
+            tokenId,
+            artifact.name,
+            artifact.description,
+            parseEth(artifact.price)
+          );
+        }
+      }
       
       setSuccess(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Minting failed:", err);
-      alert("Minting failed. Please check your connection.");
+      alert(`Minting failed: ${err.message || 'Transaction rejected'}`);
     } finally {
       setUploading(false);
     }
