@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useWallet } from '@/hooks/useWallet';
 import {
@@ -25,6 +25,8 @@ export default function UploadDesignPage() {
   ]);
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addArtifact = () => {
     setArtifacts([...artifacts, { name: '', description: '', price: '' }]);
@@ -41,17 +43,52 @@ export default function UploadDesignPage() {
     setArtifacts(updated);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setSelectedFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
   const thresholdPrice = artifacts.reduce((sum, a) => {
     const price = parseFloat(a.price) || 0;
     return sum + price;
   }, 0);
 
   const handleSubmit = async () => {
+    if (!title || !description || artifacts.some(a => !a.name || !a.price)) return;
+    
     setUploading(true);
-    // Simulated upload delay
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setUploading(false);
-    setSuccess(true);
+    // Real-world: This would upload to IPFS/Pinata and then call the DesignRegistry contract.
+    // For this demo, we simulate the decentralized storage and on-chain minting workflow.
+    console.log("Starting Minting Process for:", title);
+    
+    try {
+      // Phase 1: Uploading assets to IPFS
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log("Assets pinned to IPFS.");
+      
+      // Phase 2: Registering metadata
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log("Metadata registered via ERC-8004.");
+      
+      setSuccess(true);
+    } catch (err) {
+      console.error("Minting failed:", err);
+      alert("Minting failed. Please check your connection.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (!wallet.connected) {
@@ -168,23 +205,49 @@ export default function UploadDesignPage() {
           </div>
 
           {/* File Upload Zone */}
-          <div style={{
-            border: '2px dashed var(--color-glass-border)',
-            borderRadius: 'var(--radius-xl)',
-            padding: 'var(--space-10)',
-            textAlign: 'center',
-            cursor: 'pointer',
-            transition: 'border-color var(--transition-fast)',
-          }}
+          <div 
+            style={{
+              border: selectedFile ? '2px solid var(--color-primary)' : '2px dashed var(--color-glass-border)',
+              borderRadius: 'var(--radius-xl)',
+              padding: 'var(--space-10)',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all var(--transition-fast)',
+              background: selectedFile ? 'rgba(108, 92, 231, 0.05)' : 'transparent',
+            }}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
             id="file-upload-zone"
           >
-            <ImageIcon size={36} style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-3)' }} />
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
-              Drag & drop design assets here or click to browse
-            </p>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', marginTop: 'var(--space-1)' }}>
-              PNG, JPG, SVG, or Figma export (max 50MB)
-            </p>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              style={{ display: 'none' }} 
+              onChange={handleFileChange}
+              accept="image/*,.svg"
+            />
+            {selectedFile ? (
+              <>
+                <CheckCircle2 size={36} style={{ color: 'var(--color-primary)', marginBottom: 'var(--space-3)' }} />
+                <p style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>
+                  {selectedFile.name}
+                </p>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', marginTop: 'var(--space-1)' }}>
+                  {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB - Click to change
+                </p>
+              </>
+            ) : (
+              <>
+                <ImageIcon size={36} style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-3)' }} />
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
+                  Drag & drop design assets here or click to browse
+                </p>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', marginTop: 'var(--space-1)' }}>
+                  PNG, JPG, SVG, or Figma export (max 50MB)
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
