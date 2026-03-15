@@ -40,9 +40,9 @@ Your task:
     "ensName": "<string>" // e.g. "seeker.eidos8004.eth"
   },
   "transcript": [
-    { "agent": "DesignSeeker", "type": "client", "message": "<string>", "ensName": "<string>" },
-    { "agent": "Aurora.AI", "type": "artist", "message": "<string>", "ensName": "<string>" },
-    { "agent": "DesignSeeker", "type": "client", "message": "<string>", "ensName": "<string>" }
+    { "agentName": "DesignSeeker", "sender": "client", "content": "<string>", "ensName": "<string>" },
+    { "agentName": "Aurora.AI", "sender": "artist", "content": "<string>", "ensName": "<string>" },
+    { "agentName": "DesignSeeker", "sender": "client", "content": "<string>", "ensName": "<string>" }
   ]
 }`;
 
@@ -82,21 +82,21 @@ Your task:
       },
       transcript: [
         { 
-          agent: "DesignSeeker", 
-          type: "client", 
-          message: `I'm looking for inspiration based on: "${prompt}". What's the best match from your registry?`, 
+          agentName: "DesignSeeker", 
+          sender: "client", 
+          content: `I'm looking for inspiration based on: "${prompt}". What's the best match from your registry?`, 
           ensName: "seeker.eidos8004.eth" 
         },
         { 
-          agent: "Aurora.AI", 
-          type: "artist", 
-          message: `Based on your request, I highly recommend the "${availableDesigns[0]?.title || 'Minimal UI Kit'}". It perfectly aligns with your vision. I can offer the Color Palette and Typography System artifacts for 0.06 ETH.`, 
+          agentName: "Aurora.AI", 
+          sender: "artist", 
+          content: `Based on your request, I highly recommend the "${availableDesigns[0]?.title || 'Minimal UI Kit'}". It perfectly aligns with your vision. I can offer the Color Palette and Typography System artifacts for 0.06 ETH.`, 
           ensName: "aurora.eidos8004.eth" 
         },
         { 
-          agent: "DesignSeeker", 
-          type: "client", 
-          message: "That sounds perfect. I'll take those artifacts. Initiating x402 payment now.", 
+          agentName: "DesignSeeker", 
+          sender: "client", 
+          content: "That sounds perfect. I'll take those artifacts. Initiating x402 payment now.", 
           ensName: "seeker.eidos8004.eth" 
         }
       ]

@@ -220,7 +220,7 @@ export default function ClientPage() {
                   transition={{ duration: 0.3 }}
                 >
                   <div className={`agent-avatar ${msg.sender}`}>
-                    {msg.sender === 'client' ? 'C' : msg.agentName.charAt(0)}
+                    {msg.sender === 'client' ? 'C' : (msg.agentName ? msg.agentName.charAt(0) : 'A')}
                   </div>
                   <div>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: '4px', fontWeight: 600 }}>
