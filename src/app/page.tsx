@@ -1,373 +1,303 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Palette, Bot, Shield, Zap, ArrowRight, TrendingUp,
-  Scale, AlertTriangle, DollarSign, Users, Activity
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowRight, ArrowUpRight, Link2, Zap, Bot, Eye } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { WalletButton } from '@/components/ui/WalletButton';
+import { Footer } from '@/components/layout/Footer';
+import { MorphingIcon } from '@/components/ui/MorphingIcon';
+import { FlowPulse } from '@/components/ui/FlowPulse';
+import { ProtocolStack } from '@/components/landing/ProtocolStack';
+import { useDesignNFT } from '@/hooks/useDesignNFT';
+import { useAgentRegistry } from '@/hooks/useAgentRegistry';
+import { useAttributionValidator } from '@/hooks/useAttributionValidator';
+import { withMockFallback } from '@/lib/mock-fallback';
 
-// Simulated live feed data for demo
-const DEMO_EVENTS = [
-  { type: 'attribution', text: 'Client agent paid 0.05 ETH to @aurora_designs for "Minimal UI Kit" color palette artifact', time: '2s ago' },
-  { type: 'design_mint', text: '@pixel_master minted "Cyberpunk Dashboard" with 6 artifacts (threshold: 0.12 ETH)', time: '15s ago' },
-  { type: 'agent_register', text: 'New artist agent "Picasso.AI" registered with negotiation capabilities', time: '32s ago' },
-  { type: 'attribution', text: 'Client agent paid 0.03 ETH to @neo_designer for typography artifact', time: '1m ago' },
-  { type: 'post', text: '@creative_wolf posted "Why AI attribution matters for independent designers"', time: '2m ago' },
-  { type: 'design_mint', text: '@sakura_art minted "Japanese Garden UI" with 4 artifacts', time: '3m ago' },
-  { type: 'attribution', text: 'Bulk attribution: 3 artifacts from @modernist for 0.08 ETH total', time: '5m ago' },
-  { type: 'agent_register', text: 'New client agent "DesignSeeker" registered for logo inspiration', time: '7m ago' },
-];
+const FALLBACK_STATS = {
+  designers: '1,200+',
+  paidOut: '$850K+',
+  agents: '67',
+  attributions: '24K+',
+};
 
-const CASE_STUDY_STATS = [
-  { value: '10+', label: 'Artists in class-action lawsuits', icon: Scale },
-  { value: '$1.5B', label: 'Anthropic settlement (2025)', icon: DollarSign },
-  { value: '$500B+', label: 'Design industry size', icon: TrendingUp },
-  { value: '0%', label: 'AI compensation to creators', icon: AlertTriangle },
-];
+function formatCount(n: number): string {
+  if (n >= 1000) {
+    const k = n / 1000;
+    return `${k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)}K+`;
+  }
+  return n.toLocaleString();
+}
 
-export default function LandingPage() {
-  const [visibleEvents, setVisibleEvents] = useState(DEMO_EVENTS.slice(0, 3));
-  const [currentEventIndex, setCurrentEventIndex] = useState(3);
-  const feedRef = useRef<HTMLDivElement>(null);
+export default function Home() {
+  const { totalDesigns } = useDesignNFT();
+  const { totalAgents } = useAgentRegistry();
+  const { totalAttributions, totalDistributed } = useAttributionValidator();
 
-  // Rotate live feed events
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [stats, setStats] = useState([
+    { value: FALLBACK_STATS.designers, label: 'Designers' },
+    { value: FALLBACK_STATS.paidOut, label: 'Paid Out' },
+    { value: FALLBACK_STATS.agents, label: 'AI Agents' },
+    { value: FALLBACK_STATS.attributions, label: 'Attributions' },
+  ]);
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentEventIndex(prev => {
-        const next = (prev + 1) % DEMO_EVENTS.length;
-        setVisibleEvents(events => {
-          const newEvents = [DEMO_EVENTS[next], ...events.slice(0, 4)];
-          return newEvents;
-        });
-        return next;
-      });
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+    async function fetchStats() {
+      const [designs, agents, attributions, distributed] = await Promise.all([
+        withMockFallback(() => totalDesigns(), null),
+        withMockFallback(() => totalAgents(), null),
+        withMockFallback(() => totalAttributions(), null),
+        withMockFallback(() => totalDistributed(), null),
+      ]);
 
+      setStats([
+        {
+          value: designs !== null ? formatCount(designs) : FALLBACK_STATS.designers,
+          label: 'Designers',
+        },
+        {
+          value: distributed !== null ? `$${distributed}` : FALLBACK_STATS.paidOut,
+          label: 'Paid Out',
+        },
+        {
+          value: agents !== null ? String(agents) : FALLBACK_STATS.agents,
+          label: 'AI Agents',
+        },
+        {
+          value: attributions !== null ? formatCount(attributions) : FALLBACK_STATS.attributions,
+          label: 'Attributions',
+        },
+      ]);
+      setStatsLoading(false);
+    }
+
+    fetchStats();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalDesigns, totalAgents, totalAttributions, totalDistributed]);
   return (
-    <>
-      {/* Urgency Banner */}
-      <div className="urgency-banner" id="urgency-banner">
-        <AlertTriangle size={14} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-        Artists lost an estimated $17.1 billion to uncompensated AI training in 2024 alone.
-        The agentic economy is accelerating. Fair attribution cannot wait.
+    <div className="min-h-screen bg-c1 relative overflow-x-hidden">
+      {/* ── Vertical guide lines ── */}
+      <div className="absolute inset-0 pointer-events-none z-10" aria-hidden="true">
+        <div className="max-w-[960px] mx-auto h-full relative">
+          <div className="absolute left-6 top-0 bottom-0 w-px bg-c2 flow-line-v" />
+          <div className="absolute right-6 top-0 bottom-0 w-px bg-c2 flow-line-v" />
+        </div>
       </div>
 
-      {/* Hero Section */}
-      <section className="hero" id="hero-section">
-        <div className="hero-bg" />
+      {/* ── Content column — px-6 aligns borders with vertical guides ── */}
+      <div className="max-w-[960px] mx-auto px-6">
 
-        {/* Floating orbs */}
-        <div
-          className="hero-orb"
-          style={{
-            width: '400px', height: '400px',
-            background: 'var(--color-primary)',
-            top: '10%', left: '10%',
-          }}
-        />
-        <div
-          className="hero-orb"
-          style={{
-            width: '300px', height: '300px',
-            background: 'var(--color-secondary)',
-            bottom: '15%', right: '10%',
-            animationDelay: '-3s',
-          }}
-        />
-        <div
-          className="hero-orb"
-          style={{
-            width: '200px', height: '200px',
-            background: 'var(--color-accent)',
-            top: '50%', right: '30%',
-            animationDelay: '-5s',
-          }}
-        />
+        {/* ── Hero ── */}
+        <section className="border-t border-c2 flow-line">
+          <div className="px-8 pb-28 text-center">
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-        >
-          <h1 className="hero-title" id="hero-title">
-            Artists Deserve
-            <br />
-            <span className="gradient-text">Royalties from AI</span>
-          </h1>
-        </motion.div>
-
-        <motion.p
-          className="hero-subtitle"
-          id="hero-subtitle"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-        >
-          The first decentralized platform where AI agents autonomously
-          negotiate, attribute, and pay designers for creative inspiration.
-          Powered by ERC-8004, x402, and on-chain artifact pricing.
-        </motion.p>
-
-        <motion.div
-          className="cta-split"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-        >
-          <Link href="/artist" id="cta-artist">
-            <button className="btn btn-primary btn-lg">
-              <Palette size={20} />
-              I&apos;m an Artist
-              <ArrowRight size={16} />
-            </button>
-          </Link>
-          <Link href="/client" id="cta-client">
-            <button className="btn btn-secondary btn-lg">
-              <Bot size={20} />
-              I&apos;m a Client
-              <ArrowRight size={16} />
-            </button>
-          </Link>
-        </motion.div>
-
-        {/* Stats Bar */}
-        <motion.div
-          className="stats-bar"
-          id="stats-bar"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-        >
-          {CASE_STUDY_STATS.map((stat, i) => (
-            <div className="stat-item" key={i}>
-              <stat.icon size={18} style={{ color: 'var(--color-text-muted)', marginBottom: '4px' }} />
-              <div className="stat-value">{stat.value}</div>
-              <div className="stat-label">{stat.label}</div>
-            </div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* How It Works */}
-      <section className="section" id="how-it-works" style={{ textAlign: 'center' }}>
-        <h2 className="section-title">How It Works</h2>
-        <p className="section-subtitle" style={{ margin: '0 auto var(--space-12)' }}>
-          A three-layer protocol ensuring fair compensation in the agentic economy
-        </p>
-
-        <div className="dashboard-grid" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-          {[
-            {
-              icon: Palette,
-              title: 'Artists Upload & Price',
-              desc: 'Upload designs, define visual artifacts (color palette, typography, layout), and set prices for each artifact. Threshold price = sum of all artifact prices.',
-              color: 'var(--color-primary)',
-              gradient: 'var(--gradient-primary)',
-            },
-            {
-              icon: Bot,
-              title: 'Agents Negotiate',
-              desc: 'Client agents describe what they need. Artist agents compete by reasoning why their designs are the best fit. Autonomous negotiation at its finest.',
-              color: 'var(--color-secondary)',
-              gradient: 'var(--gradient-secondary)',
-            },
-            {
-              icon: Zap,
-              title: 'Instant Attribution & Pay',
-              desc: 'When agreement is reached, the client agent pays for selected artifacts via x402. Attribution is recorded on-chain permanently. Artists earn instantly.',
-              color: 'var(--color-accent)',
-              gradient: 'var(--gradient-accent)',
-            },
-          ].map((item, i) => (
-            <motion.div
-              key={i}
-              className="glass-card"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: i * 0.15 }}
-              viewport={{ once: true }}
-              style={{ textAlign: 'left' }}
-            >
-              <div
-                style={{
-                  width: '48px', height: '48px',
-                  borderRadius: 'var(--radius-lg)',
-                  background: item.gradient,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 'var(--space-4)',
-                }}
-              >
-                <item.icon size={24} color="white" />
-              </div>
-              <h3 style={{ fontSize: 'var(--text-xl)', marginBottom: 'var(--space-3)', fontWeight: 700 }}>
-                {item.title}
-              </h3>
-              <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)', lineHeight: 1.7 }}>
-                {item.desc}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Protocol Layers */}
-      <section className="section" id="protocol-layers">
-        <h2 className="section-title">Three Protocol Layers</h2>
-        <p className="section-subtitle">
-          Built on proven Web3 standards for the agentic economy
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-          {[
-            {
-              badge: 'Layer 1',
-              badgeClass: 'badge-primary',
-              title: 'Reputation Layer',
-              subtitle: 'ERC-8004 + Moltbook Forum + Submolt Live Feed',
-              desc: 'On-chain agent identity with reputation scoring. A community forum (Moltbook) for discussions about design attribution. Real-time event feed (Submolt Live) showing all platform activity as it happens.',
-              icon: Shield,
-            },
-            {
-              badge: 'Layer 2',
-              badgeClass: 'badge-secondary',
-              title: 'Agent Payment Layer',
-              subtitle: 'x402 Protocol for Agent-to-Agent Payments',
-              desc: 'Autonomous payments using the x402 HTTP payment protocol. Client agents pay artist agents for specific design artifacts. Instant settlement with on-chain proof. No intermediaries.',
-              icon: Zap,
-            },
-            {
-              badge: 'Layer 3',
-              badgeClass: 'badge-accent',
-              title: 'Attribution Intelligence (Future)',
-              subtitle: 'Fine-tuned Model for Inspiration Detection',
-              desc: 'A future intermediary AI model that determines what percentage of a final design was inspired by each source. Enables proportional royalty distribution based on actual creative influence.',
-              icon: Activity,
-            },
-          ].map((layer, i) => (
-            <motion.div
-              key={i}
-              className="glass-card"
-              initial={{ opacity: 0, x: i % 2 === 0 ? -30 : 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              viewport={{ once: true }}
-              style={{ display: 'flex', gap: 'var(--space-6)', alignItems: 'flex-start' }}
-            >
-              <div
-                style={{
-                  width: '56px', height: '56px', minWidth: '56px',
-                  borderRadius: 'var(--radius-lg)',
-                  background: 'var(--color-bg-glass)',
-                  border: '1px solid var(--color-glass-border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                <layer.icon size={24} style={{ color: 'var(--color-text-secondary)' }} />
-              </div>
-              <div>
-                <span className={`badge ${layer.badgeClass}`} style={{ marginBottom: 'var(--space-2)', display: 'inline-block' }}>
-                  {layer.badge}
-                </span>
-                <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: 'var(--space-1)' }}>
-                  {layer.title}
-                </h3>
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-primary-light)', marginBottom: 'var(--space-2)', fontWeight: 500 }}>
-                  {layer.subtitle}
-                </p>
-                <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)', lineHeight: 1.7 }}>
-                  {layer.desc}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Live Feed Preview */}
-      <section className="section" id="live-feed-section" style={{ textAlign: 'center' }}>
-        <h2 className="section-title">
-          <Activity size={28} style={{ verticalAlign: 'middle', marginRight: '8px', color: 'var(--color-success)' }} />
-          Submolt Live
-        </h2>
-        <p className="section-subtitle" style={{ margin: '0 auto var(--space-8)' }}>
-          Real-time feed of all platform activity
-        </p>
-
-        <div
-          ref={feedRef}
-          className="live-feed glass-card"
-          id="submolt-live-feed"
-          style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'left' }}
-        >
-          <AnimatePresence mode="popLayout">
-            {visibleEvents.map((event, i) => (
-              <motion.div
-                key={`${event.text}-${i}`}
-                className="live-feed-item"
-                initial={{ opacity: 0, x: -20, height: 0 }}
-                animate={{ opacity: 1, x: 0, height: 'auto' }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
-                style={{
-                  borderLeftColor: event.type === 'attribution' ? 'var(--color-secondary)' :
-                    event.type === 'design_mint' ? 'var(--color-primary)' :
-                    event.type === 'agent_register' ? 'var(--color-accent)' : 'var(--color-info)',
-                }}
-              >
-                <div className="live-feed-dot" />
-                <div className="live-feed-content">
-                  <div className="live-feed-text">{event.text}</div>
-                  <div className="live-feed-time">{event.time}</div>
+            {/* Pill with horizontal dashed lines */}
+            <div className="pt-44 mb-10">
+              <div className="-mx-8 border-t border-dashed border-c3" />
+              <div className="flex justify-center">
+                <div className="inline-flex items-center px-3 py-1.5 border-x border-dashed border-c3 bg-c2">
+                  <span className="text-[11px] text-c7 font-mono tracking-wider uppercase">EIP-8004</span>
                 </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      </section>
-
-      {/* Sponsors */}
-      <section className="section" id="sponsors-section" style={{ textAlign: 'center' }}>
-        <h2 className="section-title" style={{ fontSize: 'var(--text-2xl)' }}>Built With</h2>
-        <div style={{
-          display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 'var(--space-8)',
-          marginTop: 'var(--space-8)',
-        }}>
-          {['BitGo', 'ENS', 'HeyElsa.ai', 'x402', 'Fileverse', 'Base', 'ERC-8004'].map((sponsor) => (
-            <div
-              key={sponsor}
-              className="glass-card"
-              style={{
-                padding: 'var(--space-4) var(--space-6)',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 600,
-                color: 'var(--color-text-secondary)',
-              }}
-            >
-              {sponsor}
+              </div>
+              <div className="-mx-8 border-t border-dashed border-c3" />
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* Footer */}
-      <footer style={{
-        padding: 'var(--space-8)',
-        textAlign: 'center',
-        borderTop: '1px solid var(--color-glass-border)',
-        color: 'var(--color-text-muted)',
-        fontSize: 'var(--text-sm)',
-      }}>
-        <p>
-          Eidos8004 | ETHMumbai 2026 | Fair Attribution for the Agentic Economy
-        </p>
-        <p style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
-          Built with ERC-8004, x402, Base, BitGo, ENS, HeyElsa.ai, Fileverse
-        </p>
-      </footer>
-    </>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-pixel tracking-[-0.02em] text-c12 leading-[1.1] uppercase">
+              Own Your
+              <br />
+              Creative Legacy
+            </h1>
+
+            <p className="mt-8 text-sm text-c7 max-w-sm mx-auto leading-relaxed font-mono">
+              Designers earn royalties when AI agents use their work.
+              Blockchain-verified attribution. Instant settlement.
+            </p>
+
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Button
+                variant="primary"
+                onClick={() => { window.location.href = '/dashboard'; }}
+                className="group"
+              >
+                Start Earning
+                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                How It Works
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Stats strip ── */}
+        <section className="border-t border-c2 flow-line">
+          <div className="px-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 sm:divide-x sm:divide-c2">
+              {stats.map((stat) => (
+                <div key={stat.label} className="text-center py-8">
+                  <p className="text-2xl font-semibold text-c12 tabular-nums tracking-tight font-mono">
+                    <span className={statsLoading ? 'animate-skeleton inline-block opacity-40' : ''}>
+                      {stat.value}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-c6 font-mono">
+                    {stat.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Hatch ── */}
+        <div className="border-t border-c2 overflow-hidden">
+          <div className="section-hatch" />
+        </div>
+
+        {/* ── How It Works ── */}
+        <section id="how-it-works" className="border-t border-c2 flow-line">
+          <div className="px-8 pt-10 pb-8">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-c5 font-mono mb-4">
+              How It Works
+            </p>
+            <h2 className="text-2xl font-pixel uppercase tracking-tight text-c11">
+              Three steps to perpetual royalties
+            </h2>
+          </div>
+
+          <div className="border-t border-c2 flow-line grid grid-cols-1 sm:grid-cols-3">
+            {[
+              {
+                step: '01',
+                title: 'Upload & Mint',
+                desc: 'Upload your designs. Mint them as dynamic NFTs with custom royalty rates, categories, and license terms.',
+              },
+              {
+                step: '02',
+                title: 'Agents Discover',
+                desc: 'Verified AI agents browse the on-chain registry, find your work, and request usage through smart contracts.',
+              },
+              {
+                step: '03',
+                title: 'Earn Royalties',
+                desc: 'Every attribution triggers an instant payment. Track earnings, manage permissions, export reports.',
+              },
+            ].map((item, i) => (
+              <div key={item.step} className={`py-8 px-6 ${i > 0 ? 'sm:border-l border-c2' : ''}`}>
+                <span className="text-[10px] font-mono text-c5 uppercase tracking-[0.2em] block mb-3">
+                  {item.step}
+                </span>
+                <h3 className="text-base font-medium text-c11">
+                  {item.title}
+                </h3>
+                <p className="mt-1.5 text-sm text-c7 leading-relaxed">
+                  {item.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Hatch ── */}
+        <div className="border-t border-c2 overflow-hidden">
+          <div className="section-hatch" />
+        </div>
+
+        {/* ── Features ── */}
+        <section className="border-t border-c2 flow-line">
+          <div className="px-8 pt-10 pb-8">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-c5 font-mono mb-4">
+              Why Eidos
+            </p>
+            <h2 className="text-2xl font-pixel uppercase tracking-tight text-c11">
+              Built for creators in the age of AI
+            </h2>
+          </div>
+
+          <div className="border-t border-c2 flow-line">
+            {[
+              {
+                title: 'On-Chain Attribution',
+                desc: 'Immutable proof of creative ownership. Every usage is recorded on Polygon with full provenance.',
+                icon: Link2,
+              },
+              {
+                title: 'Instant Royalties',
+                desc: 'Real-time ETH payments via smart contracts. No invoices, no 60-day payment terms.',
+                icon: Zap,
+              },
+              {
+                title: 'Agent Registry',
+                desc: 'AI agents register with verified identities, trust scores, and declared capabilities.',
+                icon: Bot,
+              },
+              {
+                title: 'Full Transparency',
+                desc: 'Every attribution is tracked, timestamped, and publicly verifiable on-chain.',
+                icon: null,
+              },
+            ].map((feature, i) => (
+              <div key={feature.title} className={`py-8 px-6 sm:inline-block sm:w-1/2 sm:align-top ${i % 2 !== 0 ? 'sm:border-l border-c2' : ''} ${i >= 2 ? 'border-t border-c2' : ''}`}>
+                {feature.icon ? (
+                  <MorphingIcon icon={feature.icon} className="w-5 h-5 text-c5 mb-3" />
+                ) : (
+                  <Eye className="w-5 h-5 text-c5 mb-3 icon-blink" strokeWidth={1.5} />
+                )}
+                <h3 className="text-[15px] font-medium text-c11 mb-1.5">
+                  {feature.title}
+                </h3>
+                <p className="text-sm text-c7 leading-relaxed">
+                  {feature.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Hatch ── */}
+        <div className="border-t border-c2 overflow-hidden">
+          <div className="section-hatch" />
+        </div>
+
+        {/* ── Protocol Architecture ── */}
+        <ProtocolStack />
+
+        {/* ── Hatch ── */}
+        <div className="border-t border-c2 overflow-hidden">
+          <div className="section-hatch" />
+        </div>
+
+        {/* ── CTA ── */}
+        <section className="border-t border-c2 flow-line">
+          <div className="px-8 py-16 text-center">
+            <h2 className="text-2xl font-pixel uppercase tracking-tight text-c11">
+              Start building your attribution layer
+            </h2>
+            <p className="mt-4 text-c6 text-sm font-mono">
+              Connect your wallet to begin minting and earning.
+            </p>
+            <div className="mt-8 inline-flex flex-col sm:flex-row items-center gap-3">
+              <WalletButton />
+              <Button
+                variant="secondary"
+                onClick={() => { window.open('https://eips.ethereum.org/EIPS/eip-8004', '_blank'); }}
+              >
+                Read the EIP
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <Footer />
+      <FlowPulse />
+    </div>
   );
 }
