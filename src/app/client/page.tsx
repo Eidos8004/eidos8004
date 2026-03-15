@@ -55,6 +55,8 @@ export default function ClientPage() {
   const [messages, setMessages] = useState<NegotiationMessage[]>([]);
   const [resultData, setResultData] = useState<any>(null);
   const [showResult, setShowResult] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll chat
@@ -97,6 +99,39 @@ export default function ClientPage() {
       alert("Failed to reach agents.");
     } finally {
       setIsNegotiating(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!resultData || !wallet.address) return;
+    
+    setIsPaying(true);
+    try {
+      const design = resultData.selectedDesigns[0];
+      const payload = {
+        designId: design.designId || 1,
+        artifactIds: design.selectedArtifacts.map((a: any) => a.id),
+        clientAddress: wallet.address,
+        x402ProofHash: resultData.x402Payment.proofHash
+      };
+
+      const response = await fetch('/api/attribution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const res = await response.json();
+      if (res.success) {
+        setPaymentSuccess(true);
+      } else {
+        alert("Payment recording failed: " + res.error);
+      }
+    } catch (err) {
+      console.error("Payment error:", err);
+      alert("Failed to record attribution.");
+    } finally {
+      setIsPaying(false);
     }
   };
 
@@ -304,12 +339,56 @@ export default function ClientPage() {
                   <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--color-secondary)', fontSize: 'var(--text-xl)' }}>{resultData?.totalCost} ETH</span>
                 </div>
               </div>
-              <button className="btn btn-primary" style={{ width: '100%', marginTop: 'var(--space-4)' }} id="pay-attribution-btn">
-                <Zap size={16} />
-                Pay via x402 & Record Attribution
+              <button 
+                className="btn btn-primary" 
+                style={{ width: '100%', marginTop: 'var(--space-4)' }} 
+                id="pay-attribution-btn"
+                onClick={handlePayment}
+                disabled={isPaying || paymentSuccess}
+              >
+                {isPaying ? (
+                  <>
+                    <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                    Recording Attribution...
+                  </>
+                ) : paymentSuccess ? (
+                  <>
+                    <CheckCircle2 size={16} />
+                    Paid & Recorded
+                  </>
+                ) : (
+                  <>
+                    <Zap size={16} />
+                    Pay via x402 & Record Attribution
+                  </>
+                )}
               </button>
             </div>
           </div>
+
+          {paymentSuccess && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{
+                marginTop: 'var(--space-6)',
+                padding: 'var(--space-6)',
+                background: 'rgba(0, 184, 148, 0.1)',
+                border: '1px solid var(--color-success)',
+                borderRadius: 'var(--radius-xl)',
+                textAlign: 'center'
+              }}
+            >
+              <CheckCircle2 size={48} style={{ color: 'var(--color-success)', marginBottom: 'var(--space-3)' }} />
+              <h4 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--color-success)' }}>
+                Success! Identity & Attribution Bound
+              </h4>
+              <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--space-2)' }}>
+                Your payment was processed via BitGo and the proof is permanently recorded on Fileverse.
+                The artist's design identity has been successfully attributed to this session.
+              </p>
+            </motion.div>
+          )}
         </motion.div>
       )}
 
