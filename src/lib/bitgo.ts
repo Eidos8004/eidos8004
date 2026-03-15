@@ -17,7 +17,7 @@ export async function createAgentWallet(label: string, passphrase: string) {
     console.warn("BitGo credentials missing. Generating a local mock for Agent Wallet.");
     return {
       id: `mock-wallet-${Date.now()}`,
-      receiveAddress: `0xmock${Date.now()}agent`,
+      receiveAddress: `0x${'0'.repeat(30)}${Date.now().toString().slice(-10)}`, // Valid hex format
     };
   }
 
@@ -46,7 +46,7 @@ export async function createAgentWallet(label: string, passphrase: string) {
     console.warn("BitGo wallet generation failed. Falling back to local mock.", error.message);
     return {
       id: `mock-wallet-${Date.now()}`,
-      receiveAddress: `0xmock${Date.now()}agent`,
+      receiveAddress: `0x${'0'.repeat(30)}${Date.now().toString().slice(-10)}`, // Valid hex format
     };
   }
 }

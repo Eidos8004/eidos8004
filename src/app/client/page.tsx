@@ -112,18 +112,26 @@ export default function ClientPage() {
       const { getSigner } = await import('@/lib/contracts');
       const signer = await getSigner();
       
-      console.log("Funding agent wallet:", resultData.x402Payment.sourceAddress);
+      const targetAddress = resultData.x402Payment.sourceAddress;
+      const amountWei = resultData.x402Payment.amount;
+
+      console.log("Funding agent wallet:", targetAddress, "Amount:", amountWei);
       
       const tx = await signer.sendTransaction({
-        to: resultData.x402Payment.sourceAddress,
-        value: resultData.x402Payment.amount
+        to: targetAddress,
+        value: BigInt(amountWei)
       });
       
       await tx.wait();
       setFunded(true);
     } catch (err: any) {
       console.error("Funding failed:", err);
-      alert("Failed to fund agent wallet. Please check your balance.");
+      const msg = err.message || "Unknown error";
+      if (msg.includes("insufficient funds")) {
+        alert("Insufficient funds in your wallet to prefund the agent.");
+      } else {
+        alert(`Failed to fund agent wallet: ${msg}`);
+      }
     } finally {
       setIsFunding(false);
     }
